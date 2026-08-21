@@ -8,6 +8,16 @@
         html { box-sizing: border-box; overflow-y: scroll; }
         *, *:before, *:after { box-sizing: inherit; }
         body { margin: 0; background: #fafafa; }
+        .denied-banner {
+            padding: 20px;
+            margin: 40px auto;
+            max-width: 800px;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            font-family: sans-serif;
+        }
     </style>
 </head>
 <body>
@@ -15,44 +25,23 @@
 <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
 <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
 <script>
+    const allowedPrefixes = [
+        "https://raw.githubusercontent.com/phinetech/",
+        "https://phinetech.github.io/",
+        "https://unpkg.com/"
+    ];
+
+    function isUrlAllowed(url) {
+        return allowedPrefixes.some(prefix => url.startsWith(prefix));
+    }
+
     async function initSwagger() {
-        // Fallback raw URL if GitHub API fails
-        let urls = [
-            {
-                url: "https://raw.githubusercontent.com/phinetech/phine-lab-network-apis/main/API_definitions/quality-on-demand.yaml",
-                name: "Quality On Demand"
-            }
-        ];
+        const urlParams = new URLSearchParams(window.location.search);
+        const customUrl = urlParams.get('url');
 
-        try {
-            // Auto-discover all .yaml files in the API_definitions/ folder
-            const response = await fetch("https://api.github.com/repos/phinetech/phine-lab-network-apis/git/trees/main?recursive=1");
-            if (response.ok) {
-                const treeData = await response.json();
-
-                const discovered = treeData.tree
-                    .filter(item => item.type === "blob" && item.path.startsWith("API_definitions/") && item.path.endsWith(".yaml"))
-                    .map(file => {
-                        const fileName = file.path.split('/').pop().replace(/\.yaml$/, '');
-                        const title = fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
-                        return {
-                            url: `https://raw.githubusercontent.com/phinetech/phine-lab-network-apis/main/${file.path}`,
-                            name: title
-                        };
-                    });
-
-                if (discovered.length > 0) urls = discovered;
-            }
-        } catch (err) {
-            console.warn("GitHub API auto-discovery failed, using default fallback.", err);
-        }
-
-        window.ui = SwaggerUIBundle({
-            urls: urls,
-            "urls.primaryName": urls[0]?.name,
+        let config = {
             dom_id: '#swagger-ui',
             deepLinking: true,
-            queryConfigEnabled: true,
             presets: [
                 SwaggerUIBundle.presets.apis,
                 SwaggerUIStandalonePreset
@@ -61,27 +50,64 @@
                 SwaggerUIBundle.plugins.DownloadUrl
             ],
             layout: "StandaloneLayout",
-
-            // Enforce allowlist to block unauthorized external specs
             requestInterceptor: (req) => {
-                const allowedPrefixes = [
-                    "https://raw.githubusercontent.com/phinetech/",
-                    "https://phinetech.github.io/",
-                    "https://unpkg.com/",
-                    "./",
-                    "/"
-                ];
-
-                const isAllowed = allowedPrefixes.some(prefix => req.url.startsWith(prefix));
-
-                if (!isAllowed) {
-                    alert("Access Denied: Only raw links from the 'phinetech' organization are allowed.");
-                    throw new Error("Blocked request to unauthorized URL: " + req.url);
+                if (!isUrlAllowed(req.url)) {
+                    alert("Access Denied: Only URLs from the phinetech organization are permitted.");
+                    throw new Error("Blocked URL: " + req.url);
                 }
-
                 return req;
             }
-        });
+        };
+
+        // Fall 1: ?url= Parameter wurde explizit übergeben
+        if (customUrl) {
+            if (!isUrlAllowed(customUrl)) {
+                document.getElementById('swagger-ui').innerHTML = `
+            <div class="denied-banner">
+              <h2>Access Denied</h2>
+              <p>Only URLs from the <strong>phinetech</strong> organization are permitted.</p>
+              <p>Blocked URL: <code>${customUrl}</code></p>
+            </div>
+          `;
+                return;
+            }
+            config.url = customUrl;
+        }
+        // Fall 2: Normaler Aufruf (Auto-Discovery aller Specs in API_definitions/)
+        else {
+            let urls = [
+                {
+                    url: "https://raw.githubusercontent.com/phinetech/phine-lab-network-apis/main/API_definitions/quality-on-demand.yaml",
+                    name: "Quality On Demand"
+                }
+            ];
+
+            try {
+                const response = await fetch("https://api.github.com/repos/phinetech/phine-lab-network-apis/git/trees/main?recursive=1");
+                if (response.ok) {
+                    const treeData = await response.json();
+                    const discovered = treeData.tree
+                        .filter(item => item.type === "blob" && item.path.startsWith("API_definitions/") && item.path.endsWith(".yaml"))
+                        .map(file => {
+                            const fileName = file.path.split('/').pop().replace(/\.yaml$/, '');
+                            const title = fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+                            return {
+                                url: `https://raw.githubusercontent.com/phinetech/phine-lab-network-apis/main/${file.path}`,
+                                name: title
+                            };
+                        });
+
+                    if (discovered.length > 0) urls = discovered;
+                }
+            } catch (err) {
+                console.warn("GitHub API auto-discovery failed, using default fallback.", err);
+            }
+
+            config.urls = urls;
+            config["urls.primaryName"] = urls[0]?.name;
+        }
+
+        window.ui = SwaggerUIBundle(config);
     }
 
     window.onload = initSwagger;
