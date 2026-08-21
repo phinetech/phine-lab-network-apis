@@ -27,8 +27,7 @@
 <script>
     const allowedPrefixes = [
         "https://raw.githubusercontent.com/phinetech/",
-        "https://phinetech.github.io/",
-        "https://unpkg.com/"
+        "https://phinetech.github.io/"
     ];
 
     function isUrlAllowed(url) {
@@ -49,17 +48,9 @@
             plugins: [
                 SwaggerUIBundle.plugins.DownloadUrl
             ],
-            layout: "StandaloneLayout",
-            requestInterceptor: (req) => {
-                if (!isUrlAllowed(req.url)) {
-                    alert("Access Denied: Only URLs from the phinetech organization are permitted.");
-                    throw new Error("Blocked URL: " + req.url);
-                }
-                return req;
-            }
+            layout: "StandaloneLayout"
         };
 
-        // Fall 1: ?url= Parameter wurde explizit übergeben
         if (customUrl) {
             if (!isUrlAllowed(customUrl)) {
                 document.getElementById('swagger-ui').innerHTML = `
@@ -73,7 +64,7 @@
             }
             config.url = customUrl;
         }
-        // Fall 2: Normaler Aufruf (Auto-Discovery aller Specs in API_definitions/)
+
         else {
             let urls = [
                 {
