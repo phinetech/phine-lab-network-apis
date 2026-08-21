@@ -2,7 +2,7 @@
 # Derived from: CAMARA QualityOnDemand API (Release r3.2)
 # Original Repository: https://github.com/camaraproject/QualityOnDemand
 # License: Apache-2.0
-# Modifications: Adapted security schemes to local Bearer authentication.
+# Modifications: Adapted security schemes and updated test examples.
 # ==============================================================================
 openapi: 3.0.3
 info:
@@ -163,6 +163,31 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/CreateSession"
+            example:
+              device:
+                phoneNumber: "+123456789"
+                networkAccessIdentifier: "123456789@domain.com"
+                ipv4Address:
+                  publicAddress: "10.0.0.1"
+                  privateAddress: "10.0.0.1"
+              applicationServer:
+                ipv4Address: "0.0.0.0/0"
+              devicePorts:
+                ranges:
+                  - from: 5010
+                    to: 5020
+                ports:
+                  - 5060
+                  - 5070
+              applicationServerPorts:
+                ranges:
+                  - from: 5010
+                    to: 5020
+                ports:
+                  - 5060
+                  - 5070
+              qosProfile: "premium"
+              duration: 3600
         required: true
       callbacks:
         notifications:
@@ -548,7 +573,7 @@ components:
               description: Date and time when the QoS status became "AVAILABLE". Not to be returned when `qosStatus` is "REQUESTED". It must follow [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6) and must have time zone.
               type: string
               format: date-time
-              example: "2024-06-01T12:00:00Z"
+              example: "2026-08-21T15:23:24Z"
             expiresAt:
               description: |
                 Date and time of the QoS session expiration. It must follow [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6) and must have time zone.
@@ -558,7 +583,7 @@ components:
                 When the session is extended, the value is the new expiration time of the session.
               type: string
               format: date-time
-              example: "2024-06-01T13:00:00Z"
+              example: "2026-08-21T16:23:24Z"
             qosStatus:
               $ref: "#/components/schemas/QosStatus"
             statusInfo:
@@ -684,7 +709,7 @@ components:
                 sessions's existence. If the token expires while the session is still active, the client will stop receiving notifications.
                 If the access token is a JWT and registered "exp" (Expiration Time) claim is present, the two expiry times should match.
                 It must follow [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339#section-5.6) and must have time zone.
-              example: "2023-07-03T12:27:08.312Z"
+              example: "2026-08-21T16:23:24Z"
             accessTokenType:
               description: REQUIRED. Type of the access token (See [OAuth 2.0](https://tools.ietf.org/html/rfc6749#section-7.1)). For the current version of the API the type MUST be set to `Bearer`.
               type: string
@@ -755,7 +780,7 @@ components:
           - A searchable descriptive name
         The set of QoS Profiles that an API provider is offering may be retrieved by means of the QoS Profile API (qos-profile) or agreed on onboarding time.
       type: string
-      example: voice
+      example: premium
       minLength: 3
       maxLength: 256
       format: string
@@ -907,7 +932,7 @@ components:
       description: |
         The device should be identified by either the public (observed) IP address and port as seen by the application server, or the private (local) and any public (observed) IP addresses in use by the device (this information can be obtained by various means, for example from some DNS servers).
 
-        If the allocated and observed IP addresses are the same (i.e. NAT is not in use) then  the same address should be specified for both publicAddress and privateAddress.
+        If the allocated and observed IP addresses are the same (i.e. NAT is not in use) then the same address should be specified for both publicAddress and privateAddress.
 
         If NAT64 is in use, the device should be identified by its publicAddress and publicPort, or separately by its allocated IPv6 address (field ipv6Address of the Device object)
 
@@ -923,16 +948,14 @@ components:
         - required: [publicAddress, privateAddress]
         - required: [publicAddress, publicPort]
       example:
-        {
-          "publicAddress": "203.0.113.0",
-          "publicPort": 59765
-        }
+        publicAddress: "10.0.0.1"
+        privateAddress: "10.0.0.1"
 
     SingleIpv4Addr:
       description: A single IPv4 address with no subnet mask
       type: string
       format: ipv4
-      example: "203.0.113.0"
+      example: "10.0.0.1"
 
     DeviceIpv6Address:
       description: |
@@ -945,7 +968,7 @@ components:
 
     ApplicationServerIpv4Address:
       type: string
-      example: "198.51.100.0/24"
+      example: "0.0.0.0/0"
       description: |
         IPv4 address may be specified in form <address/mask> as:
           - address - an IPv4 number in dotted-quad form 1.2.3.4. Only this exact IP number will match the flow control rule.
@@ -1383,6 +1406,7 @@ components:
                 status: 422
                 code: UNNECESSARY_IDENTIFIER
                 message: The device is already identified by the access token.
+
     CreateSessionUnprocessableEntity422:
       description: Unprocessable Content
       headers:
@@ -1472,103 +1496,201 @@ components:
 
   examples:
     SESSION_CREATION_EXAMPLE:
-      summary: Successful session creation with device not included in response
-      description: Example response after a new QoS session has been created using a 3-legged access token, or possibly a single device identifier
+      summary: Successful session creation
+      description: Example response after a new QoS session has been created
       value:
+        sessionId: "3fb28d9a-b843-4c7f-cb7c-b64b9ada1c5e"
+        device:
+          phoneNumber: "+123456789"
+          networkAccessIdentifier: "123456789@domain.com"
+          ipv4Address:
+            publicAddress: "10.0.0.1"
+            privateAddress: "10.0.0.1"
         applicationServer:
-          ipv4Address: 198.51.100.0/24
-        qosProfile: QOS_L
-        sink: https://application-server.com/notifications
-        sessionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          ipv4Address: "0.0.0.0/0"
+        devicePorts:
+          ranges:
+            - from: 5010
+              to: 5020
+          ports:
+            - 5060
+            - 5070
+        applicationServerPorts:
+          ranges:
+            - from: 5010
+              to: 5020
+          ports:
+            - 5060
+            - 5070
+        qosProfile: "premium"
         duration: 3600
-        qosStatus: REQUESTED
+        qosStatus: "REQUESTED"
 
     SESSION_CREATION_EXAMPLE_WITH_DEVICE_RESPONSE:
       summary: Successful session creation with device included in response
-      description: Example response after a new QoS session has been created using a 2-legged access token with multiple device identifiers, or possibly only a single device identifier
+      description: Example response containing disambiguated device information
       value:
+        sessionId: "3fb28d9a-b843-4c7f-cb7c-b64b9ada1c5e"
         device:
           phoneNumber: "+123456789"
+          ipv4Address:
+            publicAddress: "10.0.0.1"
+            privateAddress: "10.0.0.1"
         applicationServer:
-          ipv4Address: 198.51.100.0/24
-        qosProfile: QOS_L
-        sink: https://application-server.com/notifications
-        sessionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          ipv4Address: "0.0.0.0/0"
+        devicePorts:
+          ranges:
+            - from: 5010
+              to: 5020
+          ports:
+            - 5060
+            - 5070
+        applicationServerPorts:
+          ranges:
+            - from: 5010
+              to: 5020
+          ports:
+            - 5060
+            - 5070
+        qosProfile: "premium"
         duration: 3600
-        qosStatus: REQUESTED
+        qosStatus: "REQUESTED"
 
     SESSION_AVAILABLE_EXAMPLE:
       summary: QoS session status is available
-      description: QoS session info when status is available
+      description: Active QoS session details
       value:
-        duration: 3600
+        sessionId: "3fb28d9a-b843-4c7f-cb7c-b64b9ada1c5e"
+        device:
+          ipv4Address:
+            publicAddress: "10.0.0.1"
+            privateAddress: "10.0.0.1"
         applicationServer:
-          ipv4Address: 198.51.100.0/24
-        qosProfile: QOS_L
-        sink: https://application-server.com/notifications
-        sessionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        startedAt: "2024-06-01T12:00:00Z"
-        expiresAt: "2024-06-01T13:00:00Z"
-        qosStatus: AVAILABLE
+          ipv4Address: "0.0.0.0/0"
+        devicePorts:
+          ranges:
+            - from: 5010
+              to: 5020
+          ports:
+            - 5060
+            - 5070
+        applicationServerPorts:
+          ranges:
+            - from: 5010
+              to: 5020
+          ports:
+            - 5060
+            - 5070
+        qosProfile: "premium"
+        duration: 3600
+        startedAt: "2026-08-21T15:23:24Z"
+        expiresAt: "2026-08-21T16:23:24Z"
+        qosStatus: "AVAILABLE"
 
     SESSION_UNAVAILABLE_EXAMPLE:
       summary: QoS session is unavailable
       description: QoS session info when status is unavailable due to network termination
       value:
-        duration: 2428
+        sessionId: "3fb28d9a-b843-4c7f-cb7c-b64b9ada1c5e"
+        device:
+          ipv4Address:
+            publicAddress: "10.0.0.1"
+            privateAddress: "10.0.0.1"
         applicationServer:
-          ipv4Address: 198.51.100.0/24
-        qosProfile: QOS_L
-        sink: https://application-server.com/notifications
-        sessionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-        startedAt: "2024-06-01T12:00:00Z"
-        expiresAt: "2024-06-01T12:40:28Z"
-        qosStatus: UNAVAILABLE
-        statusInfo: NETWORK_TERMINATED
+          ipv4Address: "0.0.0.0/0"
+        devicePorts:
+          ranges:
+            - from: 5010
+              to: 5020
+          ports:
+            - 5060
+            - 5070
+        applicationServerPorts:
+          ranges:
+            - from: 5010
+              to: 5020
+          ports:
+            - 5060
+            - 5070
+        qosProfile: "premium"
+        duration: 2428
+        startedAt: "2026-08-21T15:23:24Z"
+        expiresAt: "2026-08-21T16:03:52Z"
+        qosStatus: "UNAVAILABLE"
+        statusInfo: "NETWORK_TERMINATED"
 
     QOS_STATUS_CHANGED_EXAMPLE:
       summary: QoS status changed
       description: Cloud event example for QoS status change to UNAVAILABLE due to DURATION_EXPIRED
       value:
-        id: 83a0d986-0866-4f38-b8c0-fc65bfcda452
-        source: 'https://api.example.com/qod/v1/sessions/123e4567-e89b-12d3-a456-426614174000'
-        specversion: '1.0'
+        id: "83a0d986-0866-4f38-b8c0-fc65bfcda452"
+        source: "https://api.example.com/qod/v1/sessions/3fb28d9a-b843-4c7f-cb7c-b64b9ada1c5e"
+        specversion: "1.0"
         type: "org.camaraproject.quality-on-demand.v1.qos-status-changed"
-        time: '2024-06-01T13:00:00Z'
+        time: "2026-08-21T16:23:24Z"
         data:
-          sessionId: '123e4567-e89b-12d3-a456-426614174000'
-          qosStatus: 'UNAVAILABLE'
-          statusInfo: 'DURATION_EXPIRED'
+          sessionId: "3fb28d9a-b843-4c7f-cb7c-b64b9ada1c5e"
+          qosStatus: "UNAVAILABLE"
+          statusInfo: "DURATION_EXPIRED"
 
     RETRIEVE_SESSIONS_EXAMPLE:
       summary: List of QoS sessions for the specified device
       description: A single QoS session for the specified device is available
       value:
-        - applicationServer:
-            ipv4Address: 0.0.0.0/0
-          qosProfile: QOS_L
-          sink: https://application-server.com/notifications
-          sessionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        - sessionId: "3fb28d9a-b843-4c7f-cb7c-b64b9ada1c5e"
+          applicationServer:
+            ipv4Address: "0.0.0.0/0"
+          devicePorts:
+            ranges:
+              - from: 5010
+                to: 5020
+            ports:
+              - 5060
+              - 5070
+          applicationServerPorts:
+            ranges:
+              - from: 5010
+                to: 5020
+            ports:
+              - 5060
+              - 5070
+          qosProfile: "premium"
           duration: 3600
-          startedAt: "2024-06-01T12:00:00Z"
-          expiresAt: "2024-06-01T13:00:00Z"
-          qosStatus: AVAILABLE
+          startedAt: "2026-08-21T15:23:24Z"
+          expiresAt: "2026-08-21T16:23:24Z"
+          qosStatus: "AVAILABLE"
 
     RETRIEVE_SESSIONS_EXAMPLE_WITH_DEVICE_RESPONSE:
       summary: List of QoS sessions for a specified device with the device in the response
       description: A single QoS session for the device is available and the device to which the session applies is included in the response
       value:
-        - device:
+        - sessionId: "3fb28d9a-b843-4c7f-cb7c-b64b9ada1c5e"
+          device:
             phoneNumber: "+123456789"
+            ipv4Address:
+              publicAddress: "10.0.0.1"
+              privateAddress: "10.0.0.1"
           applicationServer:
-            ipv4Address: 0.0.0.0/0
-          qosProfile: QOS_L
-          sink: https://application-server.com/notifications
-          sessionId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+            ipv4Address: "0.0.0.0/0"
+          devicePorts:
+            ranges:
+              - from: 5010
+                to: 5020
+            ports:
+              - 5060
+              - 5070
+          applicationServerPorts:
+            ranges:
+              - from: 5010
+                to: 5020
+            ports:
+              - 5060
+              - 5070
+          qosProfile: "premium"
           duration: 3600
-          startedAt: "2024-06-01T12:00:00Z"
-          expiresAt: "2024-06-01T13:00:00Z"
-          qosStatus: AVAILABLE
+          startedAt: "2026-08-21T15:23:24Z"
+          expiresAt: "2026-08-21T16:23:24Z"
+          qosStatus: "AVAILABLE"
 
     RETRIEVE_SESSIONS_EMPTY_EXAMPLE:
       summary: No sessions found for the device
