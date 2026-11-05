@@ -173,18 +173,7 @@ paths:
               applicationServer:
                 ipv4Address: "0.0.0.0/0"
               devicePorts:
-                ranges:
-                  - from: 5010
-                    to: 5020
                 ports:
-                  - 5060
-                  - 5070
-              applicationServerPorts:
-                ranges:
-                  - from: 5010
-                    to: 5020
-                ports:
-                  - 5060
                   - 5070
               qosProfile: "premium"
               duration: 3600
